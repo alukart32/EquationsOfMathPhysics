@@ -1,0 +1,200 @@
+public class Method {
+
+    private FileData fileData;
+
+    FileWrite fileWrite = new FileWrite();
+    int precision = 18;
+    String tableSpace = " ";
+
+    private double
+            tau,
+            h,
+            c,
+            a,
+            b,
+            T, N, M;
+
+
+    public Method(FileData fileData) {
+        this.fileData = fileData;
+        setData();
+    }
+
+    private void setData(){
+        c = fileData.getC();
+        a = fileData.getA();
+        b = fileData.getB();
+        T = fileData.getT();
+        N = fileData.getN();
+        M = fileData.getM();
+
+        tau = T / N;
+        h = (b - a) / M;
+    }
+
+    // точное решение
+    private double F(double x, double t){ return x*x + t*t; }
+
+    // приближённое решение (ξ)
+    private double f(double x, double t){
+        return 2*(x + t);
+    }
+
+    private double xCondition(double x){
+        return x*x;
+    }
+
+    private double tCondition(double t){
+        return t*t + 1;
+    }
+
+    public void solve(){
+        fileWrite.cleanFile();
+
+        if (true){
+            if (!isSteady())
+                System.out.println("Схема неустойчива");
+
+            System.out.println("Схема устойчива");
+
+            // инициализация сетки
+            // x [ 0 1 2 3 4 5 ... N ]
+            double[] x = new double[(int)M],
+            // t [ 0 1 2 3 4 5 ... M ]
+                    t = new double[(int)N];
+
+            // инициализация значений на сетке
+
+            // нулевой уровень по x
+            double[] ux = new double[(int)M];
+            // нулевой уровень по t
+            double[] ut = new double[(int)N];
+
+            // подготовка системы
+            // подготовка решётки
+            // просчёт x[i], t[i]
+
+            x[0] = a;
+            // x [ 1 ... N-1]
+            for (int i = 1; i < M; i++)
+            {
+                x[i] = a + i*h;
+                // начальное граничное условие
+                ux[i] = xCondition(x[i]);
+            }
+            for (int j = 0; j < N; j++)
+            {
+                t[j] = j*tau;
+                // конечное гран условие
+                ut[j] = tCondition(t[j]);
+            }
+
+            // расчётный алгоритм
+            double r = (c * tau) / h;
+
+            /** текущее значение уровня
+             *
+             *  left   o
+             *       down
+             */
+            // значение слева от o
+            double left = ux[0];
+            // значение справа от o
+            double down = ut[0];
+            // предыдущий слой t c 0 индекса !
+            double[] prevLayer = new double[(int)N];
+            // текущий слой t c 1 индекса !
+            double[] currLayer = new double[(int)N];
+
+            // подготовка данных
+            System.arraycopy(ut,0, prevLayer, 0, (int)N);
+
+            fileWrite.write("Номер слоя    Коор. т. на временном слое      Приближенное решение        Точное решение  	Погрешность");
+            fileWrite.write("--------------------------------------------------------------------------------------------------------");
+            double max_eps_layer = 0, eps_layer;
+            double max_eps = 0;
+            double exat_solve;
+
+
+            for (int k = 0; k < prevLayer.length; k++) {
+                System.out.print(prevLayer[k] + "\t");
+            }
+            System.out.println();
+
+            for (int i = 1; i < M; i++) {
+
+                left = ux[i];
+
+                fileWrite.write("  " + i + "			          " + left);
+
+                for (int j = 0; j < N-1; j++) {
+                    currLayer[0] = ux[i];
+                    down = prevLayer[j];
+                    currLayer[j+1] = left - r*(left - down) + tau*f(x[i], t[j]);
+
+                    left = currLayer[j];
+
+                    exat_solve = F(x[i], t[j]);
+                    eps_layer = Math.abs(exat_solve - left);
+
+                    if (eps_layer > max_eps_layer)
+                        max_eps_layer = eps_layer;
+
+                    if(eps_layer < 1e-14)
+                        eps_layer = 0;
+
+                    fileWrite.write("			                                           " + left + "			           " + exat_solve + "			   " + eps_layer);
+                    fileWrite.write("			   ");
+
+                }
+                for (int k = 0; k < currLayer.length; k++) {
+                    System.out.print(currLayer[k] + "\t");
+                }
+                System.out.println();
+
+                fileWrite.write("\n");
+
+                if(max_eps_layer < 1e-14)
+                    max_eps_layer = 0;
+
+                fileWrite.write("Максимальная погрешность на    " + i +"    слое:    " + max_eps_layer);
+                fileWrite.write("--------------------------------------------------------------------------------------------------------");
+                if (max_eps_layer > max_eps)
+                    max_eps = max_eps_layer;
+                max_eps_layer = 0;
+
+                fileWrite.write("\n");
+
+                if(max_eps < 1e-14)
+                    max_eps = 0;
+
+                fileWrite.write("Максимальная погрешность на сетке: " + max_eps);
+
+                System.arraycopy(currLayer,0, prevLayer, 0, (int)N);
+            }
+
+            /*for (int j = 1; j < M; j++) {
+                left = ut[j];
+                for (int i = 1; i < N-1; i++) {
+                    down = prevLayer[i-1];
+                    currLayer[i] = left - r*(left - down) + tau*f(x[i], t[j]);
+                    left = currLayer[i];
+                }
+                for (int k = 0; k < currLayer.length; k++) {
+                    System.out.print(prevLayer[k] + "\t");
+                }
+                System.out.println();
+                System.arraycopy(currLayer,0, prevLayer, 0, (int)N);
+            }
+*/
+        }
+        else{
+            fileWrite.write("Схема неустойчива");
+            System.out.println("Схема неустойчива");
+        }
+    }
+
+    private boolean isSteady(){
+        return ((c*tau <= h) && c > 0);
+    }
+}
