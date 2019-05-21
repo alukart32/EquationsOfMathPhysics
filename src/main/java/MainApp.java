@@ -9,16 +9,15 @@ public class MainApp {
         Func[] funcs = new Func[4];
 
         // F - точное решение
-        funcs[0] = (x, t) -> x + t;
+        funcs[0] = (x, t) -> x*x + t*t;
         // f - приближённое решение (ξ)
-        funcs[1] = (x, t) -> 2;
+        funcs[1] = (x, t) -> 2*(x + t);
         // начальные условия для x
-        funcs[2] = (x, t) -> x;
+        funcs[2] = (x, t) -> x*x;
         // начальные условия для t
-        funcs[3] = (x, t) -> t;
+        funcs[3] = (x, t) -> t*t;
 
         Method solveEquation = new Method(fileData, funcs);
         solveEquation.solve();
-
     }
 }

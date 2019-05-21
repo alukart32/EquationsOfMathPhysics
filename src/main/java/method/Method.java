@@ -2,15 +2,13 @@ package method;
 
 import data.FileData;
 import filestream.FileWrite;
-import filestream.parser.SolveEquation;
 import func.Func;
 
 public class Method {
 
     private FileData fileData;
 
-    private String filepath = "E:\\Programming\\Курс_3\\Numeric_Methods\\lab4\\trash\\output.txt";
-    FileWrite fileWrite = new FileWrite(filepath);
+    FileWrite fileWrite = new FileWrite();
 
     private double
             tau,
@@ -22,11 +20,13 @@ public class Method {
 
     Func[] f;
 
-
     public Method(FileData fileData, Func[] funcs) {
         this.fileData = fileData;
         this.f = funcs;
         setData();
+
+        tau = T / M;
+        h = (b - a) / N;
     }
 
     private void setData(){
@@ -36,57 +36,41 @@ public class Method {
         T = fileData.getT();
         N = fileData.getN();
         M = fileData.getM();
-
-        SolveEquation u = new SolveEquation(fileData, f);
-        u.prepare();
     }
 
     private boolean isSteady(){
-        return ((c*tau <= h) && c > 0);
+        return ((Math.abs(c)*tau >= h) && c > 0);
     }
 
     public void solve(){
         fileWrite.cleanFile();
 
-        tau = T / M;
-        h = (b - a) / N;
-
-        if (true){
-            if (!isSteady())
+        if (isSteady()){
+            if (isSteady())
+                System.out.println("Схема устойчива");
+            else
                 System.out.println("Схема неустойчива");
 
-            System.out.println("Схема устойчива");
-
             // инициализация сетки
-            // x [ 0 1 2 3 4 5 ... N ]
-            double[] x = new double[(int)M],
-            // t [ 0 1 2 3 4 5 ... M ]
-                    t = new double[(int)N];
+            // x [ 0 1 2 3 4 5 ... N ] - точки
+
+            double[] x = new double[(int)N],
+            // px [ 0 1 2 3 4 5 ... N ] - предыдущий слой x-ов
+                    px = new double[(int)N];
+
+            double t;
 
             // инициализация значений на сетке
 
-            // нулевой уровень по x
-            double[] ux = new double[(int)M];
-            // нулевой уровень по t
-            double[] ut = new double[(int)N];
-
-            // подготовка системы
-            // подготовка решётки
-            // просчёт x[i], t[i]
+            // значения функции в слое i
+            double[] ux = new double[(int)N];
 
             x[0] = a;
-            // x [ 1 ... N-1]
-            for (int i = 1; i < M; i++)
+            for (int j = 1; j < N; j++)
             {
-                x[i] = a + i*h;
+                x[j] = a + j*h;
                 // начальное граничное условие
-                ux[i] = f[2].func(x[i],0);
-            }
-            for (int j = 0; j < N; j++)
-            {
-                t[j] = j*tau;
-                // конечное гран условие
-                ut[j] = f[3].func(0, t[j]);
+                ux[j] = f[2].func(x[j],0);
             }
 
             // расчётный алгоритм
@@ -98,38 +82,52 @@ public class Method {
              *       down
              */
             // значение слева от o
-            double left = ux[0];
+            double left;
             // значение справа от o
-            double down = ut[0];
-            // предыдущий слой t c 0 индекса !
-            double[] prevLayer = new double[(int)N];
-            // текущий слой t c 1 индекса !
+            double down;
+            // текущий слой ti c 1 индекса !
             double[] currLayer = new double[(int)N];
 
             // подготовка данных
-            System.arraycopy(ut,0, prevLayer, 0, (int)N);
+            System.arraycopy(ux,0, px, 0, (int)N);
 
-            fileWrite.write("Номер точки на tj    xi на временном слое      Приближенное решение        Точное решение  	    Погрешность");
-            fileWrite.write("-----------------------------------------------------------------------------------------------------------------------------");
+            /**
+             * Значения для определения погрешности
+             */
             double max_eps_layer = 0, eps_layer;
             double max_eps = 0;
             double exat_solve;
 
+            /**
+             * Подсчёт в узлах сетки с 1 по M t-слой
+             */
             for (int i = 1; i < M; i++) {
 
-                left = ux[i];
+                /**
+                 *  Зададим значение ti
+                 */
+                t = f[3].func(0, tau*i);
+                left = t;
 
-                fileWrite.write("       " + i + "			          " + left);
+                fileWrite.write("Временной слой: " + i);
 
-                for (int j = 0; j < N-1; j++) {
-                    currLayer[0] = ux[i];
-                    down = prevLayer[j];
-                    currLayer[j+1] = left - r*(left - down) + tau*f[2].func(x[i], t[j]);
+                fileWrite.write("-----------------------------------------------------------------------------------------------------------------------------");
+                fileWrite.write("Номер точки на временном соле    Координата на временном слое      Приближенное решение        Точное решение  	    Погрешность");
+
+                fileWrite.write("\n");
+
+                /**
+                 *  Проход по 1 .. N x, чтобы посчитать значение в узлах сетки на ti-слое
+                 */
+                for (int j = 1; j < N; j++) {
+                    down = px[j];
+                    currLayer[j] = (h*tau*f[1].func(x[j], t) + h*left + c*tau*down)/(h + c*tau);//tau*f[1].func(x[j], t) + left + r*down;
+
+                    exat_solve = f[0].func(x[j], t);
+                    eps_layer = Math.abs(exat_solve - currLayer[j]);
 
                     left = currLayer[j];
 
-                    exat_solve = f[0].func(x[i], t[j]);
-                    eps_layer = Math.abs(exat_solve - left);
 
                     if (eps_layer > max_eps_layer)
                         max_eps_layer = eps_layer;
@@ -137,9 +135,7 @@ public class Method {
                     if(eps_layer < 1e-14)
                         eps_layer = 0;
 
-                    fileWrite.write("			                                           " + left + "			           " + exat_solve + "			        " + eps_layer);
-                    fileWrite.write("			   ");
-
+                    fileWrite.write("\t\t" +j + "\t\t\t\t\t\t\t" + x[j] + "\t\t\t\t\t\t" + currLayer[j] + "\t\t\t\t\t\t" + exat_solve + "\t\t\t\t\t\t" + eps_layer);
                 }
 
                 fileWrite.write("\n");
@@ -148,19 +144,17 @@ public class Method {
                     max_eps_layer = 0;
 
                 fileWrite.write("Максимальная погрешность на    " + i +"    слое:    " + max_eps_layer);
-                fileWrite.write("--------------------------------------------------------------------------------------------------------");
-                if (max_eps_layer > max_eps)
+               if (max_eps_layer > max_eps)
                     max_eps = max_eps_layer;
                 max_eps_layer = 0;
-
-                fileWrite.write("\n");
 
                 if(max_eps < 1e-14)
                     max_eps = 0;
 
                 fileWrite.write("Максимальная погрешность на сетке: " + max_eps);
+                fileWrite.write("\n");
 
-                System.arraycopy(currLayer,0, prevLayer, 0, (int)N);
+                System.arraycopy(currLayer,0, px, 0, (int)N);
             }
         }
         else{
@@ -168,5 +162,4 @@ public class Method {
             System.out.println("Схема неустойчива");
         }
     }
-
 }

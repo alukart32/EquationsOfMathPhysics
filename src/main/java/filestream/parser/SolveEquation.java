@@ -83,14 +83,14 @@ public class SolveEquation {
             // после полученного решения
             // вывод по слоям с точным и приближ. решением и погрешностью
 
-            fileWrite.write("Номер точки на tj    xi на временном слое      Приближенное решение        Точное решение  	    Погрешность");
+            fileWrite.write("Номер точки на временном слое    Координата на временном слое      Приближенное решение        Точное решение  	    Погрешность");
             fileWrite.write("-----------------------------------------------------------------------------------------------------------------------------");
             double max_eps_layer = 0, eps_layer;
             double max_eps = 0;
 
             for (int i = 0; i < M; i++)
             {
-                fileWrite.write("       " + (i + 1) + "			          " + x[i]);
+                fileWrite.write("           " + (i+1) + "			                " + x[i]);
                 for (int j = 0; j < N; j++)
                 {
                     double exat_solve = f[0].func(x[i], t[j]);
@@ -101,7 +101,7 @@ public class SolveEquation {
                     if(eps_layer < 1e-14)
                         eps_layer = 0;
 
-                    fileWrite.write("			                                           " + u[i][j] + "			           " + exat_solve + "			        " + eps_layer);
+                    fileWrite.write("			                                                              " + u[i][j] + "			           " + exat_solve + "			        " + eps_layer);
                     fileWrite.write("			   ");
                 }
                 fileWrite.write("\n");
@@ -109,7 +109,7 @@ public class SolveEquation {
                 if(max_eps_layer < 1e-14)
                     max_eps_layer = 0;
 
-                fileWrite.write("Максимальная погрешность на    " + (i + 1) +"    слое:    " + max_eps_layer);
+                fileWrite.write("Максимальная погрешность на    " + (i+1)  +"    слое:    " + max_eps_layer);
 
                 fileWrite.write("--------------------------------------------------------------------------------------------------------");
 
@@ -128,6 +128,7 @@ public class SolveEquation {
             fileWrite.write("Максимальная погрешность на сетке: " + max_eps);
         }
         else{
+            fileWrite.cleanFile();
             fileWrite.write("Схема неустойчива");
         }
     }
