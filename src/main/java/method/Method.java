@@ -109,10 +109,14 @@ public class Method {
                 t = f[3].func(0, tau*i);
                 left = t;
 
+                fileWrite.write("*****************************************************************************************************************************");
+
                 fileWrite.write("Временной слой: " + i);
 
                 fileWrite.write("-----------------------------------------------------------------------------------------------------------------------------");
-                fileWrite.write("Номер точки на временном соле    Координата на временном слое      Приближенное решение        Точное решение  	    Погрешность");
+
+
+                fileWrite.write("\t\ti\t\t\tXi\t\t\t\t\tUij\t\t\t\t\t\tU(Xi,Tj)\t\t\t\t\t\tEPS");
 
                 fileWrite.write("\n");
 
@@ -135,7 +139,7 @@ public class Method {
                     if(eps_layer < 1e-14)
                         eps_layer = 0;
 
-                    fileWrite.write("\t\t" +j + "\t\t\t\t\t\t\t" + x[j] + "\t\t\t\t\t\t" + currLayer[j] + "\t\t\t\t\t\t" + exat_solve + "\t\t\t\t\t\t" + eps_layer);
+                    fileWrite.write("\t\t" + j + "\t\t\t" + x[j] + "\t\t\t" + currLayer[j] + "\t\t\t" + exat_solve + "\t\t\t" + eps_layer);
                 }
 
                 fileWrite.write("\n");
@@ -151,11 +155,13 @@ public class Method {
                 if(max_eps < 1e-14)
                     max_eps = 0;
 
-                fileWrite.write("Максимальная погрешность на сетке: " + max_eps);
-                fileWrite.write("\n");
-
                 System.arraycopy(currLayer,0, px, 0, (int)N);
             }
+            fileWrite.write("*****************************************************************************************************************************");
+
+            fileWrite.write("\n");
+
+            fileWrite.write("Максимальная погрешность на сетке: " + max_eps);
         }
         else{
             fileWrite.write("Схема неустойчива");
